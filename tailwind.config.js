@@ -7,11 +7,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#3B82F6', // Blue for buttons and accents
-        secondary: '#1F2937', // Dark gray for background
-        accent: '#10B981', // Green for success states
+        primary: '#3B82F6', // Blue
+        secondary: '#1F2937', // Dark gray
+        accent: '#10B981', // Green
       },
     },
   },
   plugins: [],
+  darkMode: 'class',
 }
