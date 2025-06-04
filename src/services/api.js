@@ -8,7 +8,6 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Adding a timeout
   timeout: 10000
 });
 
@@ -23,6 +22,9 @@ apiClient.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
+// Custom event for auth state changes
+const authChangeEvent = new Event('authChange');
 
 // Auth services
 export const authService = {
@@ -39,21 +41,21 @@ export const authService = {
         localStorage.setItem('isLoggedIn', 'true');
       }
       
+      // Dispatch auth change event
+      window.dispatchEvent(authChangeEvent);
+      
       return response.data;
     } catch (error) {
+      // Error handling code remains the same
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         if (error.response.status === 401) {
           throw new Error('Invalid email or password');
         }
         throw new Error(error.response.data?.message || 'Login failed. Please try again.');
       } else if (error.request) {
-        // The request was made but no response was received
         console.error('No response received:', error.request);
         throw new Error('Unable to connect to server. Please check your internet connection.');
       } else {
-        // Something happened in setting up the request
         console.error('Error setting up request:', error.message);
         throw new Error('An error occurred. Please try again.');
       }
@@ -62,15 +64,21 @@ export const authService = {
   
   register: async (userData) => {
     try {
-      const response = await apiClient.post('/users/register', userData);
+      const response = await apiClient.post('/users/signup', userData);
       
       if (response.data && response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('isLoggedIn', 'true');
+        window.dispatchEvent(new Event('authChange'));
+      } else {
+        // If registration succeeded but no token, still mark as logged in
+        localStorage.setItem('isLoggedIn', 'true');
+        window.dispatchEvent(new Event('authChange'));
       }
       
       return response.data;
     } catch (error) {
+      console.error('Registration error details:', error);
       if (error.response) {
         throw new Error(error.response.data?.message || 'Registration failed. Please try again.');
       } else if (error.request) {
@@ -84,6 +92,7 @@ export const authService = {
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('isLoggedIn');
+    window.dispatchEvent(authChangeEvent);
   },
   
   isAuthenticated: () => {
@@ -91,5 +100,4 @@ export const authService = {
   }
 };
 
-// Export the API client for other services
 export default apiClient;

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import PasswordInput from '../components/PasswordInput';
+//import { authService } from '../services/api';
 
 function SignupPage() {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ function SignupPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -26,6 +28,7 @@ function SignupPage() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccessMessage('');
     
     // Validate password match
     if (formData.password !== formData.confirmPassword) {
@@ -35,38 +38,51 @@ function SignupPage() {
     }
     
     try {
-      // Prepare data for API
+      // Prepare data for API - exactly as specified
       const apiData = {
         username: formData.username,
         email: formData.email,
         password: formData.password
       };
       
-      // Send signup request
-      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/users/register`, apiData);
+      // Send request to the correct endpoint
+      const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+      const response = await axios.post(`${API_URL}/users/signup`, apiData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       console.log('Signup successful:', response.data);
-      localStorage.setItem('isLoggedIn', 'true');
       
-      // If there's a token in the response, store it
-      if (response.data && response.data.token) {
-        localStorage.setItem('token', response.data.token);
-      }
+      // Set success message
+      setSuccessMessage('Account created successfully! Redirecting to login...');
       
-      navigate('/');
+      // Navigate to login page after a short delay (to show success message)
+      setTimeout(() => {
+        navigate('/login', { 
+          replace: true,
+          state: { 
+            registrationSuccess: true, 
+            email: formData.email,
+            message: 'Your account has been created successfully! Please sign in.'
+          }
+        });
+      }, 1500);
+      
     } catch (err) {
       console.error('Signup error:', err);
       
       if (err.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-        setError(err.response.data?.message || 'Failed to create account. Please try again.');
+        setError(err.response.data?.message || `Registration failed: ${err.response.status}`);
       } else if (err.request) {
         // The request was made but no response was received
-        setError('No response from server. Please check your connection and try again.');
+        setError('Unable to connect to server. Please check your internet connection.');
       } else {
         // Something happened in setting up the request
-        setError('Error creating account. Please try again.');
+        setError('An error occurred. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -86,6 +102,13 @@ function SignupPage() {
             <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm dark:bg-red-900 dark:text-red-200">
               <p className="font-medium">Registration failed</p>
               <p>{error}</p>
+            </div>
+          )}
+          
+          {successMessage && (
+            <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm dark:bg-green-900 dark:text-green-200">
+              <p className="font-medium">Success!</p>
+              <p>{successMessage}</p>
             </div>
           )}
           
@@ -160,7 +183,7 @@ function SignupPage() {
                 className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white 
                           bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition duration-150 ease-in-out
                           ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                disabled={isLoading}
+                disabled={isLoading || successMessage}
               >
                 {isLoading ? (
                   <span className="flex items-center">

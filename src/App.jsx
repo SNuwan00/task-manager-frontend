@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
@@ -9,118 +9,96 @@ import ProfilePage from './pages/ProfilePage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import { authService } from './services/api';
 
+// Component to conditionally render Navbar
+function NavbarWrapper() {
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+  
+  if (isAuthPage) {
+    return null;
+  }
+  
+  return <Navbar />;
+}
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
+  const checkAuthStatus = () => {
+    const authStatus = authService.isAuthenticated();
+    setIsAuthenticated(authStatus);
+    setIsLoading(false);
+  };
+  
   useEffect(() => {
-    // Check authentication status on component mount
-    const checkAuth = () => {
-      const authenticated = authService.isAuthenticated();
-      setIsAuthenticated(authenticated);
-      setIsLoading(false);
+    // Check auth on initial load
+    checkAuthStatus();
+    
+    // Setup listener for auth changes
+    const handleAuthChange = () => {
+      checkAuthStatus();
     };
     
-    checkAuth();
+    window.addEventListener('authChange', handleAuthChange);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'isLoggedIn' || e.key === 'token') {
+        checkAuthStatus();
+      }
+    });
     
-    // Listen for storage events (login/logout in other tabs)
-    const handleStorageChange = () => {
-      checkAuth();
+    return () => {
+      window.removeEventListener('authChange', handleAuthChange);
+      window.removeEventListener('storage', handleAuthChange);
     };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
   
-  // Protected route component
-  const ProtectedRoute = ({ children }) => {
-    if (isLoading) {
-      return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
-    }
-    
-    if (!isAuthenticated) {
-      return <Navigate to="/login" replace />;
-    }
-    
-    return children;
-  };
+  // Loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
   
-  // Public route - redirects to dashboard if already authenticated
-  const PublicRoute = ({ children }) => {
-    if (isLoading) {
-      return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
-    }
-    
-    if (isAuthenticated) {
-      return <Navigate to="/" replace />;
-    }
-    
-    return children;
-  };
-
   return (
     <Router>
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-        {/* Only show Navbar when authenticated */}
-        {isAuthenticated && <Navbar />}
+        <NavbarWrapper />
         
-        {/* Adjust padding when no navbar is shown */}
-        <main className={`container mx-auto ${isAuthenticated ? 'p-6' : 'p-0'}`}>
+        <main className="container mx-auto p-4">
           <Routes>
-            {/* Protected Routes */}
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/profile" 
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/profile/edit" 
-              element={
-                <ProtectedRoute>
-                  <ProfileEditPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/tasks" 
-              element={
-                <ProtectedRoute>
-                  <TaskPage />
-                </ProtectedRoute>
-              } 
-            />
-            
             {/* Public Routes */}
-            <Route 
-              path="/login" 
-              element={
-                <PublicRoute>
-                  <LoginPage />
-                </PublicRoute>
-              } 
-            />
-            <Route 
-              path="/signup" 
-              element={
-                <PublicRoute>
-                  <SignupPage />
-                </PublicRoute>
-              } 
-            />
+            <Route path="/login" element={
+              isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
+            } />
             
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
+            <Route path="/signup" element={
+              isAuthenticated ? <Navigate to="/" replace /> : <SignupPage />
+            } />
+            
+            {/* Protected Routes */}
+            <Route path="/" element={
+              isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />
+            } />
+            
+            <Route path="/tasks" element={
+              isAuthenticated ? <TaskPage /> : <Navigate to="/login" replace />
+            } />
+            
+            <Route path="/profile" element={
+              isAuthenticated ? <ProfilePage /> : <Navigate to="/login" replace />
+            } />
+            
+            <Route path="/profile/edit" element={
+              isAuthenticated ? <ProfileEditPage /> : <Navigate to="/login" replace />
+            } />
+            
+            {/* Catch all route - redirect to login or dashboard based on auth */}
+            <Route path="*" element={
+              <Navigate to={isAuthenticated ? "/" : "/login"} replace />
+            } />
           </Routes>
         </main>
       </div>
