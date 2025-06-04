@@ -1,12 +1,19 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { authService } from '../services/api';
 
 function Navbar() {
   const [darkMode, setDarkMode] = useState(false);
+  const navigate = useNavigate();
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
     document.documentElement.classList.toggle('dark');
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/login');
   };
 
   return (
@@ -31,6 +38,12 @@ function Navbar() {
             aria-label="Toggle dark mode"
           >
             {darkMode ? '☀️' : '🌙'}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="text-gray-600 dark:text-gray-200 hover:text-red-500 dark:hover:text-red-400"
+          >
+            Logout
           </button>
         </div>
       </div>
