@@ -1,25 +1,55 @@
-function TaskCard({ task }) {
+import PropTypes from 'prop-types';
+
+// Color map based on your prompt
+const statusDot = {
+  'NOT_STARTED': 'bg-yellow-400',      // #FFFF00
+  'IN_PROGRESS': 'bg-orange-400',      // #FFA500
+  'STARTED': 'bg-green-400',           // #32CD32
+  'DONE': 'bg-green-900',              // #006400
+  'COMPLETED': 'bg-green-900',         // #006400
+  'ENDED': 'bg-gray-500',              // #808080
+  'UPCOMING': 'bg-blue-300',           // #ADD8E6
+};
+
+const timeDot = {
+  'UPCOMING': 'bg-blue-300',           // #ADD8E6
+  'ENDED': 'bg-gray-500',              // #808080
+  'IN_PROGRESS': 'bg-orange-400',      // #FFA500
+  'STARTED': 'bg-green-400',           // #32CD32
+  'NOT_STARTED': 'bg-yellow-400',      // #FFFF00
+  'DONE': 'bg-green-900',              // #006400
+  'DUE_TODAY': 'bg-orange-400',        // #FFA500
+  'OVERDUE': 'bg-gray-500',            // #808080
+  'COMPLETED': 'bg-green-900',         // #006400
+};
+
+function DashboardTaskCard({ task }) {
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg transition">
-      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{task.title}</h3>
-      <p className="text-gray-600 dark:text-gray-400">{task.description || 'No description'}</p>
-      <div className="mt-2 flex justify-between items-center">
-        <span
-          className={`inline-block px-3 py-1 rounded-full text-sm ${
-            task.status === 'To-Do' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' :
-            task.status === 'In Progress' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200' :
-            'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200'
-          }`}
-        >
-          {task.status}
-        </span>
-        <div>
-          <button className="text-primary hover:text-blue-700 mr-2">Edit</button>
-          <button className="text-red-600 hover:text-red-800">Delete</button>
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex flex-col gap-2 border-l-4 border-primary hover:shadow-lg transition">
+      <div className="flex items-center gap-2">
+        <span className={`w-2.5 h-2.5 rounded-full ${statusDot[task.userStatus] || 'bg-gray-300'}`}></span>
+        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</span>
+      </div>
+      <div className="flex items-center gap-4 mt-1">
+        <div className="flex items-center gap-1">
+          <span className={`w-2 h-2 rounded-full ${statusDot[task.userStatus] || 'bg-gray-300'}`}></span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">{task.userStatus?.replace('_', ' ')}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className={`w-2 h-2 rounded-full ${timeDot[task.timeStatus] || 'bg-gray-300'}`}></span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">{task.timeStatus?.replace('_', ' ')}</span>
         </div>
       </div>
     </div>
   );
 }
 
-export default TaskCard;
+DashboardTaskCard.propTypes = {
+  task: PropTypes.shape({
+    title: PropTypes.string.isRequired,
+    userStatus: PropTypes.string.isRequired,
+    timeStatus: PropTypes.string.isRequired
+  }).isRequired
+};
+
+export default DashboardTaskCard;
