@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import PasswordInput from '../components/PasswordInput';
-//import { authService } from '../services/api';
+import { authService } from '../services/api';
 
 function SignupPage() {
   const [formData, setFormData] = useState({
@@ -12,8 +11,8 @@ function SignupPage() {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -28,7 +27,6 @@ function SignupPage() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    setSuccessMessage('');
     
     // Validate password match
     if (formData.password !== formData.confirmPassword) {
@@ -38,27 +36,20 @@ function SignupPage() {
     }
     
     try {
-      // Prepare data for API - exactly as specified
+      // Prepare data for API
       const apiData = {
         username: formData.username,
         email: formData.email,
         password: formData.password
       };
       
-      // Send request to the correct endpoint
-      const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-      const response = await axios.post(`${API_URL}/users/signup`, apiData, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      // Send request to sign up
+      await authService.register(apiData);
       
-      console.log('Signup successful:', response.data);
+      // Show success message
+      setSuccessMessage('Registration successful! Redirecting to login...');
       
-      // Set success message
-      setSuccessMessage('Account created successfully! Redirecting to login...');
-      
-      // Navigate to login page after a short delay (to show success message)
+      // Navigate to login page after a short delay with pre-filled email
       setTimeout(() => {
         navigate('/login', { 
           replace: true,
@@ -72,18 +63,7 @@ function SignupPage() {
       
     } catch (err) {
       console.error('Signup error:', err);
-      
-      if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        setError(err.response.data?.message || `Registration failed: ${err.response.status}`);
-      } else if (err.request) {
-        // The request was made but no response was received
-        setError('Unable to connect to server. Please check your internet connection.');
-      } else {
-        // Something happened in setting up the request
-        setError('An error occurred. Please try again.');
-      }
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

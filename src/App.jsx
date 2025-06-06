@@ -9,13 +9,13 @@ import ProfilePage from './pages/ProfilePage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import { authService } from './services/api';
 
-// Component to conditionally render Navbar
+// NavbarWrapper component that conditionally renders the navbar
 function NavbarWrapper() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
   
   if (isAuthPage) {
-    return null;
+    return null; // Don't show navbar on login/signup pages
   }
   
   return <Navbar />;
@@ -25,25 +25,26 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const checkAuthStatus = () => {
-    const authStatus = authService.isAuthenticated();
-    setIsAuthenticated(authStatus);
-    setIsLoading(false);
-  };
-  
+  // Check authentication status on initial load
   useEffect(() => {
-    // Check auth on initial load
-    checkAuthStatus();
+    const checkAuth = () => {
+      const authenticated = authService.isAuthenticated();
+      setIsAuthenticated(authenticated);
+      setIsLoading(false);
+    };
     
-    // Setup listener for auth changes
+    // Check auth immediately when app loads
+    checkAuth();
+    
+    // Listen for auth changes
     const handleAuthChange = () => {
-      checkAuthStatus();
+      checkAuth();
     };
     
     window.addEventListener('authChange', handleAuthChange);
     window.addEventListener('storage', (e) => {
-      if (e.key === 'isLoggedIn' || e.key === 'token') {
-        checkAuthStatus();
+      if (e.key === 'isLoggedIn' || e.key === 'token' || e.key === 'userId') {
+        checkAuth();
       }
     });
     
@@ -53,7 +54,7 @@ function App() {
     };
   }, []);
   
-  // Loading screen while checking authentication
+  // Show loading indicator while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -69,6 +70,11 @@ function App() {
         
         <main className="container mx-auto p-4">
           <Routes>
+            {/* Root path redirects based on auth status */}
+            <Route path="/" element={
+              isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />
+            } />
+            
             {/* Public Routes */}
             <Route path="/login" element={
               isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
@@ -79,10 +85,6 @@ function App() {
             } />
             
             {/* Protected Routes */}
-            <Route path="/" element={
-              isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />
-            } />
-            
             <Route path="/tasks" element={
               isAuthenticated ? <TaskPage /> : <Navigate to="/login" replace />
             } />

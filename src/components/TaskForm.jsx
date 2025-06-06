@@ -1,15 +1,19 @@
 import { useState } from 'react';
 
 function TaskForm({ onTaskAdded }) {
+  // Get today's date in yyyy-MM-dd format for default value
+  const today = new Date().toISOString().split('T')[0];
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    startDate: new Date().toISOString().split('T')[0], // Today's date as default
-    startTime: '',
+    startDate: today,
+    startTime: '00:01', // Default start time
     endDate: '',
-    endTime: ''
+    endTime: '23:59' // Default end time
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,50 +23,46 @@ function TaskForm({ onTaskAdded }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError('');
     
     try {
       // Format dates and times properly
       const formattedTask = {
         title: formData.title,
         description: formData.description,
-        startDateTime: formatDateTime(formData.startDate, formData.startTime || '00:01'),
-        endDateTime: formData.endDate 
-          ? formatDateTime(formData.endDate, formData.endTime || '23:59') 
-          : null
+        startDateTime: `${formData.startDate}T${formData.startTime || '00:01'}`,
+        endDateTime: formData.endDate ? `${formData.endDate}T${formData.endTime || '23:59'}` : null
       };
       
-      // In a real app, you would send this to an API
-      console.log('Submitting task:', formattedTask);
+      // Send to parent component
+      await onTaskAdded(formattedTask);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Clear form
+      // Reset form on success
       setFormData({
         title: '',
         description: '',
-        startDate: new Date().toISOString().split('T')[0],
-        startTime: '',
+        startDate: today,
+        startTime: '00:01',
         endDate: '',
-        endTime: ''
+        endTime: '23:59'
       });
       
-      // Notify parent component
-      onTaskAdded(formattedTask);
     } catch (error) {
       console.error('Error adding task:', error);
+      setError('Failed to create task. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
   
-  // Helper function to format date and time
-  const formatDateTime = (date, time) => {
-    return `${date}T${time}:00`;
-  };
-  
   return (
     <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm dark:bg-red-900 dark:text-red-200">
+          {error}
+        </div>
+      )}
+      
       <div className="mb-4">
         <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Task Title*
@@ -112,7 +112,7 @@ function TaskForm({ onTaskAdded }) {
         
         <div>
           <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Start Time <span className="text-xs text-gray-500">(defaults to 00:01)</span>
+            Start Time
           </label>
           <input
             type="time"
@@ -143,7 +143,7 @@ function TaskForm({ onTaskAdded }) {
         
         <div>
           <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            End Time <span className="text-xs text-gray-500">(defaults to 23:59)</span>
+            End Time
           </label>
           <input
             type="time"

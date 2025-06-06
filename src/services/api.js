@@ -23,40 +23,38 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Custom event for auth state changes
-const authChangeEvent = new Event('authChange');
-
 // Auth services
 export const authService = {
   login: async (email, password) => {
     try {
       const response = await apiClient.post('/users/login', { email, password });
       
-      // Check if the response has data and a token
-      if (response.data && response.data.token) {
+      // Store token if available
+      if (response.data.token) {
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('isLoggedIn', 'true');
-      } else {
-        // If login succeeded but no token, still mark as logged in
-        localStorage.setItem('isLoggedIn', 'true');
       }
       
-      // Dispatch auth change event
-      window.dispatchEvent(authChangeEvent);
+      // Store user ID
+      if (response.data.userId) {
+        localStorage.setItem('userId', response.data.userId);
+      }
+      
+      // Mark as logged in
+      localStorage.setItem('isLoggedIn', 'true');
+      
+      // Notify components about auth change
+      window.dispatchEvent(new Event('authChange'));
       
       return response.data;
     } catch (error) {
-      // Error handling code remains the same
       if (error.response) {
         if (error.response.status === 401) {
           throw new Error('Invalid email or password');
         }
         throw new Error(error.response.data?.message || 'Login failed. Please try again.');
       } else if (error.request) {
-        console.error('No response received:', error.request);
         throw new Error('Unable to connect to server. Please check your internet connection.');
       } else {
-        console.error('Error setting up request:', error.message);
         throw new Error('An error occurred. Please try again.');
       }
     }
@@ -65,20 +63,9 @@ export const authService = {
   register: async (userData) => {
     try {
       const response = await apiClient.post('/users/signup', userData);
-      
-      if (response.data && response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('isLoggedIn', 'true');
-        window.dispatchEvent(new Event('authChange'));
-      } else {
-        // If registration succeeded but no token, still mark as logged in
-        localStorage.setItem('isLoggedIn', 'true');
-        window.dispatchEvent(new Event('authChange'));
-      }
-      
+      // Don't log in the user immediately, just return the response
       return response.data;
     } catch (error) {
-      console.error('Registration error details:', error);
       if (error.response) {
         throw new Error(error.response.data?.message || 'Registration failed. Please try again.');
       } else if (error.request) {
@@ -90,13 +77,21 @@ export const authService = {
   },
   
   logout: () => {
+    // Clear all auth-related data
     localStorage.removeItem('token');
     localStorage.removeItem('isLoggedIn');
-    window.dispatchEvent(authChangeEvent);
+    localStorage.removeItem('userId');
+    
+    // Notify components
+    window.dispatchEvent(new Event('authChange'));
   },
   
   isAuthenticated: () => {
     return localStorage.getItem('isLoggedIn') === 'true';
+  },
+  
+  getUserId: () => {
+    return localStorage.getItem('userId');
   }
 };
 

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/api';
 import PasswordInput from '../components/PasswordInput';
 
@@ -7,8 +7,31 @@ function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [notification, setNotification] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for registration success message
+  useEffect(() => {
+    if (location.state?.registrationSuccess) {
+      setEmail(location.state.email || '');
+      setNotification({
+        type: 'success',
+        message: location.state.message || 'Registration successful! Please sign in.'
+      });
+      
+      // Clear the location state
+      window.history.replaceState({}, document.title);
+      
+      // Hide the notification after a few seconds
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,7 +39,10 @@ function LoginPage() {
     setError('');
     
     try {
-      await authService.login(email, password);
+      const response = await authService.login(email, password);
+      console.log('Login successful:', response);
+      
+      // Navigate to dashboard
       navigate('/', { replace: true });
     } catch (err) {
       console.error('Login error:', err);
@@ -54,6 +80,16 @@ function LoginPage() {
             <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm dark:bg-red-900 dark:text-red-200">
               <p className="font-medium">Login failed</p>
               <p>{error}</p>
+            </div>
+          )}
+          
+          {notification && (
+            <div className={`mb-4 p-3 ${
+              notification.type === 'success' 
+                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' 
+                : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+            } rounded-lg text-sm`}>
+              <p>{notification.message}</p>
             </div>
           )}
           
