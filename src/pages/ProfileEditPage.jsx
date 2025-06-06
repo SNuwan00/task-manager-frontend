@@ -1,16 +1,32 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function ProfileEditPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const userInfo = location.state?.userInfo; // <-- Correct way
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    username: 'JohnDoe',
-    email: 'john@example.com',
-    fullName: 'John Doe',
+    username: userInfo?.username || 'john_doe',
+    email: userInfo?.email || 'john@example.com',
+    fullName: userInfo?.fullName || 'john_doe',
     bio: 'Task management enthusiast and software developer.',
-    avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=0D8ABC&color=fff'
+    avatar: userInfo?.photoPath || 'https://ui-avatars.com/api/?name=John+Doe&background=0D8ABC&color=fff'
   });
+
+  // Update formData if userInfo changes (e.g., on navigation)
+  useEffect(() => {
+    if (userInfo) {
+      setFormData({
+        username: userInfo.username || 'john_doe',
+        email: userInfo.email || 'john@example.com',
+        fullName: userInfo.fullName || 'john_doe',
+        bio: 'Task management enthusiast and software developer.',
+        avatar: userInfo.photoPath || 'https://ui-avatars.com/api/?name=John+Doe&background=0D8ABC&color=fff'
+      });
+    }
+  }, [userInfo]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

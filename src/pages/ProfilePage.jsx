@@ -1,17 +1,23 @@
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { authService } from '../services/api';
+import axios from 'axios';
 
 function ProfilePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [notification, setNotification] = useState(null);
+  const [email, setEmail] = useState('john@example.com');
+  const [name, setName] = useState('JohnDoe');
+  const [photoPath, setPhotoPath] = useState('https://ui-avatars.com/api/?name=John+Doe&background=0D8ABC&color=fff');
+
   const user = { 
-    username: 'JohnDoe',
-    email: 'john@example.com',
-    fullName: 'John Doe',
+    username: name,
+    email: email,
+    fullName: name,
     bio: 'Task management enthusiast and software developer.',
-    avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=0D8ABC&color=fff'
+    avatar: photoPath
   };
 
   useEffect(() => {
@@ -31,10 +37,42 @@ function ProfilePage() {
       
       return () => clearTimeout(timer);
     }
+    const fetchUserProfile = async () => {
+      try {
+        const userId = authService.getUserId();
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${API_BASE_URL}/users/${userId}`, {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json'
+          }
+        });
+        setEmail(response.data.email);
+        setName(response.data.username);
+        setPhotoPath(response.data.profilePhotoPath || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff');
+      } catch (err) {
+        setNotification({
+          type: 'error',
+          message: 'Failed to load profile data.'
+        });
+      }
+    };
+
+    fetchUserProfile();
   }, [location]);
 
   const handleEditProfile = () => {
-    navigate('/profile/edit');
+    navigate('/profile/edit',{
+      state: { // <-- use 'state' here!
+        userInfo: {
+          email: email,
+          username: name,
+          fullName: name,
+          photoPath: photoPath
+        }
+      }
+    });
   };
 
   return (
