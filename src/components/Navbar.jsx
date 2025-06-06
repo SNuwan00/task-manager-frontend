@@ -1,12 +1,36 @@
-import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { authService } from '../services/api';
 
 function Navbar() {
   const [darkMode, setDarkMode] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Function to determine if a nav link is active
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  useEffect(() => {
+    // Check if dark mode was previously enabled
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (isDarkMode) {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
 
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('darkMode', newMode.toString());
     document.documentElement.classList.toggle('dark');
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -16,13 +40,28 @@ function Navbar() {
           Task Manager
         </Link>
         <div className="space-x-4 flex items-center">
-          <Link to="/" className="text-gray-600 dark:text-gray-200 hover:text-primary">
+          <Link 
+            to="/" 
+            className={`${isActive('/') 
+              ? 'text-primary font-medium' 
+              : 'text-gray-600 dark:text-gray-200'} hover:text-primary`}
+          >
             Dashboard
           </Link>
-          <Link to="/tasks" className="text-gray-600 dark:text-gray-200 hover:text-primary">
+          <Link 
+            to="/tasks" 
+            className={`${isActive('/tasks') 
+              ? 'text-primary font-medium' 
+              : 'text-gray-600 dark:text-gray-200'} hover:text-primary`}
+          >
             Tasks
           </Link>
-          <Link to="/profile" className="text-gray-600 dark:text-gray-200 hover:text-primary">
+          <Link 
+            to="/profile" 
+            className={`${isActive('/profile') || isActive('/profile/edit') 
+              ? 'text-primary font-medium' 
+              : 'text-gray-600 dark:text-gray-200'} hover:text-primary`}
+          >
             Profile
           </Link>
           <button
@@ -31,6 +70,12 @@ function Navbar() {
             aria-label="Toggle dark mode"
           >
             {darkMode ? '☀️' : '🌙'}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-200"
+          >
+            Logout
           </button>
         </div>
       </div>
