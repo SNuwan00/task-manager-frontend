@@ -28,23 +28,24 @@ export const authService = {
   login: async (email, password) => {
     try {
       const response = await apiClient.post('/users/login', { email, password });
-      
+
       // Store token if available
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
       }
-      
-      // Store user ID
-      if (response.data.userId) {
-        localStorage.setItem('userId', response.data.userId);
+
+      // Store user ID (check both userId and id)
+      let userId = response.data.userId || response.data.id;
+      if (userId) {
+        localStorage.setItem('userId', userId);
       }
-      
+
       // Mark as logged in
       localStorage.setItem('isLoggedIn', 'true');
-      
+
       // Notify components about auth change
       window.dispatchEvent(new Event('authChange'));
-      
+
       return response.data;
     } catch (error) {
       if (error.response) {

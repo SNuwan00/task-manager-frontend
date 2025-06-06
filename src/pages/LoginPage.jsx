@@ -40,7 +40,8 @@ function LoginPage() {
     
     try {
       const response = await authService.login(email, password);
-      console.log('Login successful:', response);
+      console.log('Login successful', response);
+      console.log('[LoginPage.jsx] User ID after login:', authService.getUserId());
       
       // Navigate to dashboard
       navigate('/', { replace: true });
