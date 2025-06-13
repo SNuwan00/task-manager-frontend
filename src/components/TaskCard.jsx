@@ -1,31 +1,45 @@
 import PropTypes from 'prop-types';
 
-// Color map based on your prompt
 const statusDot = {
-  'NOT_STARTED': 'bg-yellow-400',      // #FFFF00
-  'IN_PROGRESS': 'bg-orange-400',      // #FFA500
-  'STARTED': 'bg-green-400',           // #32CD32
-  'DONE': 'bg-green-900',              // #006400
-  'COMPLETED': 'bg-green-900',         // #006400
-  'ENDED': 'bg-gray-500',              // #808080
-  'UPCOMING': 'bg-blue-300',           // #ADD8E6
+  'NOT_STARTED': 'bg-yellow-400',
+  'IN_PROGRESS': 'bg-orange-400',
+  'STARTED': 'bg-green-400',
+  'DONE': 'bg-green-900',
+  'COMPLETED': 'bg-green-900',
+  'ENDED': 'bg-gray-500',
+  'UPCOMING': 'bg-blue-300',
 };
 
 const timeDot = {
-  'UPCOMING': 'bg-blue-300',           // #ADD8E6
-  'ENDED': 'bg-gray-500',              // #808080
-  'IN_PROGRESS': 'bg-orange-400',      // #FFA500
-  'STARTED': 'bg-green-400',           // #32CD32
-  'NOT_STARTED': 'bg-yellow-400',      // #FFFF00
-  'DONE': 'bg-green-900',              // #006400
-  'DUE_TODAY': 'bg-orange-400',        // #FFA500
-  'OVERDUE': 'bg-gray-500',            // #808080
-  'COMPLETED': 'bg-green-900',         // #006400
+  'UPCOMING': 'bg-blue-300',
+  'ENDED': 'bg-gray-500',
+  'IN_PROGRESS': 'bg-orange-400',
+  'STARTED': 'bg-green-400',
+  'NOT_STARTED': 'bg-yellow-400',
+  'DONE': 'bg-green-900',
+  'DUE_TODAY': 'bg-orange-400',
+  'OVERDUE': 'bg-gray-500',
+  'COMPLETED': 'bg-green-900',
 };
 
-function DashboardTaskCard({ task }) {
+function DashboardTaskCard({ task, onClick }) {
+  // Check if task has id, taskId, or _id property
+  const getTaskId = () => {
+    // Try to get the ID from various possible properties
+    return task.id || task.taskId || task._id;
+  };
+  
+  const handleClick = () => {
+    if (onClick) {
+      onClick(task);
+    }
+  };
+
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex flex-col gap-2 border-l-4 border-primary hover:shadow-lg transition">
+    <div 
+      className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex flex-col gap-2 border-l-4 border-primary hover:shadow-lg transition cursor-pointer"
+      onClick={handleClick}
+    >
       <div className="flex items-center gap-2">
         <span className={`w-2.5 h-2.5 rounded-full ${statusDot[task.userStatus] || 'bg-gray-300'}`}></span>
         <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</span>
@@ -49,7 +63,9 @@ DashboardTaskCard.propTypes = {
     title: PropTypes.string.isRequired,
     userStatus: PropTypes.string.isRequired,
     timeStatus: PropTypes.string.isRequired
-  }).isRequired
+    // Not requiring id fields since we handle missing IDs
+  }).isRequired,
+  onClick: PropTypes.func
 };
 
 export default DashboardTaskCard;
