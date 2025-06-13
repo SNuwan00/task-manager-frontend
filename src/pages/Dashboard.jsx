@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import DashboardTaskCard from '../components/TaskCard';
+import TaskDetailsModal from '../components/TaskDetailsModal';
 import apiClient from '../services/api';
 import { authService } from '../services/api';
 
@@ -13,6 +14,7 @@ function Dashboard() {
     completed: 0,
     dueToday: 0
   });
+  const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -59,6 +61,15 @@ function Dashboard() {
     fetchDashboardData();
   }, []);
 
+  const handleTaskClick = (task) => {
+    console.log("Task clicked:", task);
+    setSelectedTask(task);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedTask(null);
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Dashboard</h2>
@@ -96,10 +107,11 @@ function Dashboard() {
           </div>
         ) : tasks.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tasks.map((task, idx) => (
+            {tasks.map((task) => (
               <DashboardTaskCard 
-                key={task.id || idx} 
+                key={task.taskId} 
                 task={task} 
+                onClick={handleTaskClick}
               />
             ))}
           </div>
@@ -119,10 +131,11 @@ function Dashboard() {
           </div>
         ) : completedTasks.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {completedTasks.map((task, idx) => (
+            {completedTasks.map((task) => (
               <DashboardTaskCard 
-                key={task.id || `done-${idx}`} 
+                key={`done-${task.taskId}`} 
                 task={task} 
+                onClick={handleTaskClick}
               />
             ))}
           </div>
@@ -145,6 +158,14 @@ function Dashboard() {
           </a>
         </div>
       </div>
+
+      {/* Task Details Modal */}
+      {selectedTask && (
+        <TaskDetailsModal 
+          task={selectedTask} 
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 }
