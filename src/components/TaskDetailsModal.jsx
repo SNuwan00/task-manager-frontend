@@ -1,11 +1,14 @@
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../services/api';
 
 function TaskDetailsModal({ task, onClose }) {
   const [fullTaskDetails, setFullTaskDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false); // For status update loading state
+  const navigate = useNavigate();
   
   useEffect(() => {
     const fetchTaskDetails = async () => {
@@ -23,7 +26,7 @@ function TaskDetailsModal({ task, onClose }) {
         setLoading(true);
         console.log(`Fetching task details for ID: ${taskId}`);
         const response = await apiClient.get(`/tasks/${taskId}/details`);
-        console.log("API Response from /api/tasks/${taskId}/details:", response.data);
+        console.log("API Response:", response.data);
         setFullTaskDetails(response.data);
         setError(null);
       } catch (err) {
@@ -41,6 +44,69 @@ function TaskDetailsModal({ task, onClose }) {
   // Use the full details if available, otherwise use the original task
   const displayTask = fullTaskDetails || task;
   
+  // Handle Edit button click
+  const handleEditClick = () => {
+    const taskId = displayTask.taskId;
+    
+    // Debug log to verify taskId
+    console.log("Navigating to edit task with ID:", taskId);
+    
+    if (!taskId && taskId !== 0) {
+      console.error("Cannot navigate: No taskId available in task", displayTask);
+      return;
+    }
+    
+    // Close the modal first
+    onClose();
+    
+    // Use setTimeout to ensure the modal is closed before navigation
+    setTimeout(() => {
+      // Navigate to the edit page
+      navigate(`/tasks/edit/${taskId}`);
+      
+      // Log for debugging
+      console.log("Navigation attempted to:", `/tasks/edit/${taskId}`);
+    }, 100);
+  };
+  
+  // New function to update task status
+  const updateTaskStatus = async (newStatus) => {
+    const taskId = displayTask.taskId;
+    
+    if (!taskId && taskId !== 0) {
+      console.error("Cannot update status: No taskId available");
+      return;
+    }
+    
+    // Don't update if it's the same status
+    if (displayTask.userStatus === newStatus) {
+      return;
+    }
+    
+    try {
+      setUpdatingStatus(true);
+      console.log(`Updating task ${taskId} status to: ${newStatus}`);
+      
+      const response = await apiClient.put(`/task-status/${taskId}`, {
+        userStatus: newStatus
+      });
+      
+      console.log("Status update response:", response.data);
+      
+      // Update the local task data
+      setFullTaskDetails({
+        ...fullTaskDetails,
+        userStatus: newStatus
+      });
+      
+    } catch (err) {
+      console.error('Error updating task status:', err);
+      setError('Failed to update task status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+  
   // Format date to be more readable
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -56,11 +122,8 @@ function TaskDetailsModal({ task, onClose }) {
   const getStatusColor = (status) => {
     const statusColors = {
       'NOT_STARTED': 'bg-yellow-400',
-      'IN_PROGRESS': 'bg-orange-400',
       'STARTED': 'bg-green-400',
-      'DONE': 'bg-green-900',
-      'COMPLETED': 'bg-green-900',
-      'ENDED': 'bg-gray-500'
+      'DONE': 'bg-green-900'
     };
     return statusColors[status] || 'bg-gray-300';
   };
@@ -103,6 +166,58 @@ function TaskDetailsModal({ task, onClose }) {
           ) : (
             <div className="space-y-4">
               <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">{displayTask.title}</h2>
+              
+              {/* Task Status Section - Now with Quick Toggle */}
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Task Status</h4>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => updateTaskStatus('NOT_STARTED')}
+                    disabled={updatingStatus || displayTask.userStatus === 'NOT_STARTED'}
+                    className={`px-3 py-2 rounded-md flex items-center gap-2 transition-colors ${
+                      displayTask.userStatus === 'NOT_STARTED'
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200 border-2 border-yellow-400'
+                        : 'bg-gray-100 hover:bg-yellow-50 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
+                    Not Started
+                  </button>
+                  
+                  <button
+                    onClick={() => updateTaskStatus('STARTED')}
+                    disabled={updatingStatus || displayTask.userStatus === 'STARTED'}
+                    className={`px-3 py-2 rounded-md flex items-center gap-2 transition-colors ${
+                      displayTask.userStatus === 'STARTED'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border-2 border-green-400'
+                        : 'bg-gray-100 hover:bg-green-50 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    <span className="w-3 h-3 rounded-full bg-green-400"></span>
+                    Started
+                  </button>
+                  
+                  <button
+                    onClick={() => updateTaskStatus('DONE')}
+                    disabled={updatingStatus || displayTask.userStatus === 'DONE'}
+                    className={`px-3 py-2 rounded-md flex items-center gap-2 transition-colors ${
+                      displayTask.userStatus === 'DONE'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border-2 border-green-900'
+                        : 'bg-gray-100 hover:bg-green-50 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    <span className="w-3 h-3 rounded-full bg-green-900"></span>
+                    Done
+                  </button>
+                </div>
+                
+                {updatingStatus && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Updating status...
+                  </p>
+                )}
+              </div>
               
               <div className="flex items-center gap-4 mt-2">
                 <div className="flex items-center gap-2">
@@ -157,13 +272,20 @@ function TaskDetailsModal({ task, onClose }) {
           )}
         </div>
         
-        {/* Footer */}
-        <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4">
+        {/* Footer with Edit button */}
+        <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between">
           <button
             onClick={onClose}
             className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium py-2 px-4 rounded-md transition-colors"
           >
             Close
+          </button>
+          <button
+            onClick={handleEditClick}
+            disabled={loading}
+            className="bg-primary hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Edit Task
           </button>
         </div>
       </div>
@@ -173,11 +295,10 @@ function TaskDetailsModal({ task, onClose }) {
 
 TaskDetailsModal.propTypes = {
   task: PropTypes.shape({
-    taskId: PropTypes.number.isRequired,
+    taskId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     title: PropTypes.string.isRequired,
-    userStatus: PropTypes.string.isRequired,
-    timeStatus: PropTypes.string.isRequired,
-    // Other properties are optional
+    userStatus: PropTypes.string,
+    timeStatus: PropTypes.string,
     description: PropTypes.string,
     startDate: PropTypes.string,
     startTime: PropTypes.string,
