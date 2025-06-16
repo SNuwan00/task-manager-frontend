@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 
-function TaskForm({ onTaskAdded }) {
+function TaskForm({ onTaskAdded, onTaskUpdated, initialTask, isEditMode }) {
   // Get today's date in yyyy-MM-dd format for default value
   const today = new Date().toISOString().split('T')[0];
   
   const [formData, setFormData] = useState({
+    taskId: null,
     title: '',
     description: '',
     startDate: today,
@@ -14,6 +16,24 @@ function TaskForm({ onTaskAdded }) {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  
+  // Update form data when initialTask changes (for editing)
+  useEffect(() => {
+    if (initialTask && isEditMode) {
+      console.log("Setting form data from initial task:", initialTask);
+      setFormData({
+        taskId: initialTask.taskId,
+        title: initialTask.title || '',
+        description: initialTask.description || '',
+        startDate: initialTask.startDate || today,
+        startTime: initialTask.startTime || '00:01',
+        endDate: initialTask.endDate || '',
+        endTime: initialTask.endTime || '23:59',
+        userStatus: initialTask.userStatus || 'NOT_STARTED',
+        timeStatus: initialTask.timeStatus || 'UPCOMING'
+      });
+    }
+  }, [initialTask, isEditMode, today]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,30 +46,45 @@ function TaskForm({ onTaskAdded }) {
     setError('');
     
     try {
-      // Format dates and times properly
+      // Only include fields that have been set
       const formattedTask = {
-        title: formData.title,
+        taskId: formData.taskId,
+        title: formData.title.trim() ? formData.title : null,
         description: formData.description,
-        startDateTime: `${formData.startDate}T${formData.startTime || '00:01'}`,
-        endDateTime: formData.endDate ? `${formData.endDate}T${formData.endTime || '23:59'}` : null
+        startDate: formData.startDate,
+        startTime: formData.startTime || '00:01',
+        endDate: formData.endDate || null,
+        endTime: formData.endDate ? formData.endTime || '23:59' : null,
+        userStatus: formData.userStatus,
+        timeStatus: formData.timeStatus
       };
       
-      // Send to parent component
-      await onTaskAdded(formattedTask);
+      // Log what we're submitting
+      console.log(`Submitting ${isEditMode ? 'updated' : 'new'} task:`, formattedTask);
       
-      // Reset form on success
-      setFormData({
-        title: '',
-        description: '',
-        startDate: today,
-        startTime: '00:01',
-        endDate: '',
-        endTime: '23:59'
-      });
-      
+      if (isEditMode && onTaskUpdated) {
+        // Update existing task
+        await onTaskUpdated(formattedTask);
+      } else {
+        // Create new task
+        await onTaskAdded(formattedTask);
+        
+        // Reset form on success for create mode
+        setFormData({
+          taskId: null,
+          title: '',
+          description: '',
+          startDate: today,
+          startTime: '00:01',
+          endDate: '',
+          endTime: '23:59',
+          userStatus: 'NOT_STARTED',
+          timeStatus: 'UPCOMING'
+        });
+      }
     } catch (error) {
-      console.error('Error adding task:', error);
-      setError('Failed to create task. Please try again.');
+      console.error(`Error ${isEditMode ? 'updating' : 'adding'} task:`, error);
+      setError(`Failed to ${isEditMode ? 'update' : 'create'} task. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -157,6 +192,25 @@ function TaskForm({ onTaskAdded }) {
         </div>
       </div>
       
+      {isEditMode && (
+        <div className="mb-6">
+          <label htmlFor="userStatus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Status
+          </label>
+          <select
+            id="userStatus"
+            name="userStatus"
+            value={formData.userStatus}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          >
+            <option value="NOT_STARTED">Not Started</option>
+            <option value="STARTED">Started</option>
+            <option value="DONE">Done</option>
+          </select>
+        </div>
+      )}
+      
       <div className="flex justify-end">
         <button
           type="submit"
@@ -171,13 +225,26 @@ function TaskForm({ onTaskAdded }) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Creating Task...
+              {isEditMode ? 'Updating Task...' : 'Creating Task...'}
             </span>
-          ) : 'Create Task'}
+          ) : (
+            isEditMode ? 'Save Changes' : 'Create Task'
+          )}
         </button>
       </div>
     </form>
   );
 }
+
+TaskForm.propTypes = {
+  onTaskAdded: PropTypes.func,
+  onTaskUpdated: PropTypes.func,
+  initialTask: PropTypes.object,
+  isEditMode: PropTypes.bool
+};
+
+TaskForm.defaultProps = {
+  isEditMode: false
+};
 
 export default TaskForm;

@@ -101,6 +101,7 @@ function App() {
             <Route path="*" element={
               <Navigate to={isAuthenticated ? "/" : "/login"} replace />
             } />
+            <Route path="/tasks/edit/:taskId" element={<TaskPage />} />
           </Routes>
         </main>
       </div>
